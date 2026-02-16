@@ -52,4 +52,10 @@ public:
 	virtual ~Arrive() override = default;
 	
 	virtual SteeringOutput CalculateSteering(float DeltaT, ASteeringAgent& Agent) override;
+	
+private:
+	float SlowRadius{500};
+	float TargetRadius{100};
+	float MaxSpeed{};
+	bool FirstTime{true};
 };
