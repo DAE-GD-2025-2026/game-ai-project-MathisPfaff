@@ -98,3 +98,43 @@ SteeringOutput Arrive::CalculateSteering(float DeltaT, ASteeringAgent& Agent)
 	
 	return steering;
 }
+
+//FACE
+//*******
+SteeringOutput Face::CalculateSteering(float DeltaT, ASteeringAgent& Agent)
+{
+	SteeringOutput steering{};
+	
+	// Direction from agent to target
+	FVector2D toTarget = Target.Position - Agent.GetPosition();
+
+	// If we're basically on top of the target, don't rotate
+	if (toTarget.IsNearlyZero(1.f))
+		return steering;
+
+	// Desired angle (in degrees) toward the target
+	float desiredAngle = FMath::RadiansToDegrees(FMath::Atan2(toTarget.Y, toTarget.X));
+
+	// Current facing angle (Yaw)
+	float currentAngle = Agent.GetRotation();
+
+	// Shortest angle difference (wraps around -180..180)
+	float angleDiff = FMath::FindDeltaAngleDegrees(currentAngle, desiredAngle);
+
+	// Output angular velocity proportional to how far we need to turn
+	// This gives a smooth "arrive" style rotation (slows down as it nears the target angle)
+	steering.AngularVelocity = angleDiff / DeltaT;
+
+	// Clamp to max angular speed
+	steering.AngularVelocity = FMath::Clamp(steering.AngularVelocity, 
+		-Agent.GetMaxAngularSpeed(), Agent.GetMaxAngularSpeed());
+
+	if (Agent.GetDebugRenderingEnabled())
+	{
+		DrawDebugPoint(Agent.GetWorld(), FVector(Target.Position, 0), 10.f, FColor::Red);
+		DrawDebugLine(Agent.GetWorld(), FVector(Agent.GetPosition(), 0),
+			FVector(Agent.GetPosition(), 0) + Agent.GetActorForwardVector() * 60, FColor::Magenta);
+	}
+
+	return steering;
+}
