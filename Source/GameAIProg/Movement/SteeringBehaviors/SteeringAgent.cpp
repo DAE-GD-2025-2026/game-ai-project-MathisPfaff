@@ -1,6 +1,8 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
-
+#pragma optimize("", off)
 #include "SteeringAgent.h"
+
+#include "AIController.h"
 
 
 // Sets default values
@@ -8,7 +10,6 @@ ASteeringAgent::ASteeringAgent()
 {
 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
-	GetCharacterMovement()->bOrientRotationToMovement = false;
 }
 
 // Called when the game starts or when spawned
@@ -30,10 +31,31 @@ void ASteeringAgent::Tick(float DeltaTime)
 	if (SteeringBehavior)
 	{
 		SteeringOutput output = SteeringBehavior->CalculateSteering(DeltaTime, *this);
-		AddMovementInput(FVector{output.LinearVelocity, 0.f});
-		
-		float clampedAngular = FMath::Clamp(output.AngularVelocity, -GetMaxAngularSpeed(), GetMaxAngularSpeed());
-		AddActorWorldRotation(FRotator(0.f, clampedAngular * DeltaTime, 0.f));
+		if (output.IsValid)
+		{
+			AddMovementInput(FVector(output.LinearVelocity, 0));
+			
+			if (!IsAutoOrienting())
+			{
+				if (AAIController* AIController = Cast<AAIController>(GetController()))
+				{
+					float const DeltaYaw = FMath::Clamp(output.AngularVelocity, -1.f, 1.f)
+					* GetMaxAngularSpeed() * DeltaTime;
+					
+					float const CurrentSpeed = GetMaxAngularSpeed();
+					
+					FRotator const CurrentRotation{GetActorForwardVector().ToOrientationRotator()};
+					FRotator const DeltaRotation{0, DeltaYaw, 0};
+					FRotator const DesiredRotation{CurrentRotation + DeltaRotation};
+					
+					if (!FMath::IsNearlyEqual(DesiredRotation.Yaw, CurrentRotation.Yaw))
+					{
+						AIController->SetControlRotation(DesiredRotation);
+						FaceRotation(DesiredRotation);
+					}
+				}
+			}
+		}
 	}
 }
 
