@@ -20,7 +20,6 @@ SteeringOutput Seek::CalculateSteering(float DeltaT, ASteeringAgent& Agent)
 			FVector(Agent.GetPosition(), 0) + Agent.GetVelocity() / 3, FColor::Green);
 		DrawDebugLine(Agent.GetWorld(), FVector(Agent.GetPosition(), 0), 
 			FVector(Agent.GetPosition(), 0) + Agent.GetActorForwardVector() * 60, FColor::Magenta);
-		
 	}
 
 	return steering;
@@ -130,5 +129,55 @@ SteeringOutput Face::CalculateSteering(float DeltaT, ASteeringAgent& Agent)
 			FVector(Agent.GetPosition(), 0) + Agent.GetActorForwardVector() * 60, FColor::Magenta);
 	}
 
+	return steering;
+}
+
+//PURSUIT
+//*******
+SteeringOutput Pursuit::CalculateSteering(float DeltaT, ASteeringAgent& Agent)
+{
+	SteeringOutput steering{};
+	Agent.SetIsAutoOrienting(true);
+	
+	FVector2D toTarget = Target.Position - Agent.GetPosition();
+	float const timeToTarget = toTarget.Length() / Agent.GetMaxLinearSpeed();
+	
+	FVector2D predictedPosition = Target.Position + Target.LinearVelocity * timeToTarget;
+	steering.LinearVelocity = predictedPosition - Agent.GetPosition();
+	
+	if (Agent.GetDebugRenderingEnabled())
+	{
+		DrawDebugPoint(Agent.GetWorld(), FVector(predictedPosition, 0), 10.f, FColor::Red);
+		DrawDebugLine(Agent.GetWorld(), FVector(Agent.GetPosition(), 0), 
+			FVector(Agent.GetPosition(), 0) + Agent.GetVelocity() / 3, FColor::Green);
+		DrawDebugLine(Agent.GetWorld(), FVector(Agent.GetPosition(), 0), 
+			FVector(Agent.GetPosition(), 0) + Agent.GetActorForwardVector() * 60, FColor::Magenta);
+	}
+	
+	return steering;
+}
+
+//EVADE
+//*******
+SteeringOutput Evade::CalculateSteering(float DeltaT, ASteeringAgent& Agent)
+{
+	SteeringOutput steering{};
+	Agent.SetIsAutoOrienting(true);
+	
+	FVector2D toTarget = Target.Position - Agent.GetPosition();
+	float const timeToTarget = toTarget.Length() / Agent.GetMaxLinearSpeed();
+	
+	FVector2D predictedPosition = Target.Position + Target.LinearVelocity * timeToTarget;
+	steering.LinearVelocity = Agent.GetPosition() - predictedPosition;
+	
+	if (Agent.GetDebugRenderingEnabled())
+	{
+		DrawDebugPoint(Agent.GetWorld(), FVector(predictedPosition, 0), 10.f, FColor::Red);
+		DrawDebugLine(Agent.GetWorld(), FVector(Agent.GetPosition(), 0), 
+			FVector(Agent.GetPosition(), 0) + Agent.GetVelocity() / 3, FColor::Green);
+		DrawDebugLine(Agent.GetWorld(), FVector(Agent.GetPosition(), 0), 
+			FVector(Agent.GetPosition(), 0) + Agent.GetActorForwardVector() * 60, FColor::Magenta);
+	}
+	
 	return steering;
 }
