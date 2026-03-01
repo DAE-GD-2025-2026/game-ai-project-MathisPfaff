@@ -201,22 +201,16 @@ SteeringOutput Wander::CalculateSteering(float DeltaT, ASteeringAgent& Agent)
 	// Move the wander angle by a random amount, clamped to MaxAngleChange
 	float angleChange = FMath::RandRange(-m_MaxAngleChange, m_MaxAngleChange);
 	m_WanderAngle += angleChange;
+	
+	m_WanderAngle = FMath::Clamp(m_WanderAngle, -PI, PI);
 
-	// Get the circle center: project it in front of the agent
-	FVector2D agentPos = Agent.GetPosition();
-	FVector2D forward = FVector2D(Agent.GetActorForwardVector());
-	forward.Normalize();
-
-	FVector2D circleCenter = agentPos + forward * m_OffsetDistance;
-
-	// Calculate the point on the circle's edge using WanderAngle
-	FVector2D pointOnCircle = circleCenter + FVector2D(
-		FMath::Cos(FMath::DegreesToRadians(m_WanderAngle)),
-		FMath::Sin(FMath::DegreesToRadians(m_WanderAngle))
-	) * m_Radius;
-
-	// Steer towards that point
-	steering.LinearVelocity = pointOnCircle - agentPos;
+	FVector2D circleCenter{Agent.GetPosition() + FVector2D(Agent.GetActorForwardVector() * m_OffsetDistance)};
+	
+	FVector2D pointOnCircle{};
+	pointOnCircle.X = circleCenter.X + FMath::Cos(m_WanderAngle) * m_Radius;
+	pointOnCircle.Y = circleCenter.Y + FMath::Sin(m_WanderAngle) * m_Radius;
+	
+	steering.LinearVelocity = pointOnCircle - Agent.GetPosition();
 
 	if (Agent.GetDebugRenderingEnabled())
 	{
@@ -226,10 +220,10 @@ SteeringOutput Wander::CalculateSteering(float DeltaT, ASteeringAgent& Agent)
 
 		DrawDebugPoint(Agent.GetWorld(), FVector(pointOnCircle, 0), 10.f, FColor::Red);
 
-		DrawDebugLine(Agent.GetWorld(), FVector(agentPos, 0),
-			FVector(agentPos, 0) + Agent.GetVelocity() / 3, FColor::Green);
-		DrawDebugLine(Agent.GetWorld(), FVector(agentPos, 0),
-			FVector(agentPos, 0) + Agent.GetActorForwardVector() * 60, FColor::Magenta);
+		DrawDebugLine(Agent.GetWorld(), FVector(Agent.GetPosition(), 0),
+			FVector(Agent.GetPosition(), 0) + Agent.GetVelocity() / 3, FColor::Green);
+		DrawDebugLine(Agent.GetWorld(), FVector(Agent.GetPosition(), 0),
+			FVector(Agent.GetPosition(), 0) + Agent.GetActorForwardVector() * 60, FColor::Magenta);
 	}
 	
 	return steering;

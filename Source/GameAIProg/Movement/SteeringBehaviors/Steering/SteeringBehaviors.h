@@ -102,6 +102,6 @@ public:
 protected:
 	float m_OffsetDistance{150.f};
 	float m_Radius{100.f};
-	float m_MaxAngleChange{2.f};
+	float m_MaxAngleChange{FMath::DegreesToRadians(45.f)};
 	float m_WanderAngle{0.f};
 };
