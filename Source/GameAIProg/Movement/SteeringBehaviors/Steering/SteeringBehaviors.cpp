@@ -163,15 +163,24 @@ SteeringOutput Evade::CalculateSteering(float DeltaT, ASteeringAgent& Agent)
 {
 	SteeringOutput steering{};
 	Agent.SetIsAutoOrienting(true);
+	float const evadeDistance {500.f};
 	
 	FVector2D toTarget = Target.Position - Agent.GetPosition();
 	float const timeToTarget = toTarget.Length() / Agent.GetMaxLinearSpeed();
 	
 	FVector2D predictedPosition = Target.Position + Target.LinearVelocity * timeToTarget;
-	steering.LinearVelocity = Agent.GetPosition() - predictedPosition;
+	
+	if (toTarget.Length() < evadeDistance)
+	{
+		steering.LinearVelocity = Agent.GetPosition() - predictedPosition;
+	}
 	
 	if (Agent.GetDebugRenderingEnabled())
 	{
+		DrawDebugCircle(Agent.GetWorld(), FVector(Agent.GetPosition(), 0), evadeDistance, 16, 
+			FColor::Orange, false, -1.f, 0,2.f, 
+			FVector(0, 1, 0), FVector(1, 0, 0), false);
+		
 		DrawDebugPoint(Agent.GetWorld(), FVector(predictedPosition, 0), 10.f, FColor::Red);
 		DrawDebugLine(Agent.GetWorld(), FVector(Agent.GetPosition(), 0), 
 			FVector(Agent.GetPosition(), 0) + Agent.GetVelocity() / 3, FColor::Green);
