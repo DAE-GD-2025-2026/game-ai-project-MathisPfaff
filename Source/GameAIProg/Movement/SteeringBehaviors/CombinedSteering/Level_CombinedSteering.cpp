@@ -19,7 +19,6 @@ void ALevel_CombinedSteering::BeginPlay()
 	pWander = std::make_unique<Wander>();
 	
 	pSeek->SetTarget(MouseTarget);
-	pWander->SetTarget(MouseTarget);
 	
 	std::vector<BlendedSteering::WeightedBehavior> WeightedBehaviors
 	{
@@ -31,6 +30,22 @@ void ALevel_CombinedSteering::BeginPlay()
 	
 	DrunkAgent = GetWorld()->SpawnActor<ASteeringAgent>(SteeringAgentClass, FVector{0,0,90}, FRotator::ZeroRotator);
 	DrunkAgent->SetSteeringBehavior(pBlendedSteering.get());
+	
+	pEvade = std::make_unique<Evade>();
+	pEvade->SetTarget(MouseTarget);
+	pEvadeWander = std::make_unique<Wander>();
+	
+	std::vector<ISteeringBehavior*> SteeringBehaviors
+	{
+		pEvade.get(),
+		pEvadeWander.get()
+	};
+	
+	pPrioritySteering = std::make_unique<PrioritySteering>(SteeringBehaviors);
+	
+	EvadingAgent = GetWorld()->SpawnActor<ASteeringAgent>(SteeringAgentClass, FVector{0,0,90}, FRotator::ZeroRotator);
+	EvadingAgent->SetSteeringBehavior(pPrioritySteering.get());
+
 }
 
 void ALevel_CombinedSteering::BeginDestroy()
@@ -112,7 +127,19 @@ void ALevel_CombinedSteering::Tick(float DeltaTime)
 		ImGui::End();
 		
 		pSeek->SetTarget(MouseTarget);
-		pWander->SetTarget(MouseTarget);
+		
+		if (DrunkAgent)
+		{
+			ASteeringAgent* const TargetAgent = DrunkAgent;
+
+			FTargetData Target;
+			Target.Position = TargetAgent->GetPosition();
+			Target.Orientation = TargetAgent->GetRotation();
+			Target.LinearVelocity = TargetAgent->GetLinearVelocity();
+			Target.AngularVelocity = TargetAgent->GetAngularVelocity();
+
+			pEvade->SetTarget(Target);
+		}
 	}
 #pragma endregion
 	

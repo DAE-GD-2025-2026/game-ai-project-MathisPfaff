@@ -15,12 +15,17 @@ SteeringOutput BlendedSteering::CalculateSteering(float DeltaT, ASteeringAgent& 
 	float TotalWeight = 0.f;
 	Agent.SetIsAutoOrienting(true);
 
-
 	for (auto& WeightedBehavior : WeightedBehaviors)
 	{
 		if (WeightedBehavior.pBehavior && WeightedBehavior.Weight > 0.f)
 		{
 			SteeringOutput BehaviorOutput = WeightedBehavior.pBehavior->CalculateSteering(DeltaT, Agent);
+
+			if (!BehaviorOutput.LinearVelocity.IsNearlyZero())
+			{
+				BehaviorOutput.LinearVelocity.Normalize();
+			}
+
 			BlendedSteering.LinearVelocity  += BehaviorOutput.LinearVelocity  * WeightedBehavior.Weight;
 			BlendedSteering.AngularVelocity += BehaviorOutput.AngularVelocity * WeightedBehavior.Weight;
 			TotalWeight += WeightedBehavior.Weight;
@@ -30,7 +35,6 @@ SteeringOutput BlendedSteering::CalculateSteering(float DeltaT, ASteeringAgent& 
 	if (TotalWeight > 0.f)
 	{
 		BlendedSteering.LinearVelocity *= 1.f / TotalWeight;
-		BlendedSteering.IsValid = true;
 	}
 	
 	// TODO: Add debug drawing
@@ -64,10 +68,11 @@ SteeringOutput PrioritySteering::CalculateSteering(float DeltaT, ASteeringAgent&
 	{
 		Steering = pBehavior->CalculateSteering(DeltaT, Agent);
 
-		if (Steering.IsValid)
+		if (!Steering.LinearVelocity.IsNearlyZero())
+		{
 			break;
+		}
 	}
 
-	//If none of the behavior return a valid output, last behavior is returned
 	return Steering;
 }

@@ -35,10 +35,15 @@ private:
 	bool CanDebugRender = false;
 	
 	ASteeringAgent* DrunkAgent{nullptr};
+	ASteeringAgent* EvadingAgent{nullptr};
 	
 	std::unique_ptr<Seek> pSeek{};
 	std::unique_ptr<Wander> pWander{};
 	
+	std::unique_ptr<Evade> pEvade{};
+	std::unique_ptr<Wander> pEvadeWander{};
+	
 	std::unique_ptr<BlendedSteering> pBlendedSteering{};
+	std::unique_ptr<PrioritySteering> pPrioritySteering{};
 	
 };

@@ -174,6 +174,10 @@ SteeringOutput Evade::CalculateSteering(float DeltaT, ASteeringAgent& Agent)
 	{
 		steering.LinearVelocity = Agent.GetPosition() - predictedPosition;
 	}
+	else
+	{
+		return steering;
+	}
 	
 	if (Agent.GetDebugRenderingEnabled())
 	{
