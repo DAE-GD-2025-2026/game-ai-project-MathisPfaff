@@ -16,7 +16,7 @@ void ALevel_Flocking::BeginPlay()
 {
 	Super::BeginPlay();
 
-	TrimWorld->SetTrimWorldSize(3000.f);
+	TrimWorld->SetTrimWorldSize(1200.f);
 	TrimWorld->bShouldTrimWorld = true;
 
 	pFlock = TUniquePtr<Flock>(
@@ -34,6 +34,9 @@ void ALevel_Flocking::BeginPlay()
 void ALevel_Flocking::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+	
+	if (!pFlock)
+		return;
 
 	pFlock->ImGuiRender(WindowPos, WindowSize);
 	pFlock->Tick(DeltaTime);

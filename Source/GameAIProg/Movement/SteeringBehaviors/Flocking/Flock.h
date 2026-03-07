@@ -36,7 +36,7 @@ public:
 #else // No space partitioning
 	void RegisterNeighbors(ASteeringAgent* const Agent);
 	int GetNrOfNeighbors() const { return NrOfNeighbors; }
-	const TArray<ASteeringAgent*>& GetNeighbors() const { return Neighbors; }
+	const ASteeringAgent* const* GetNeighbors() const { return pNeighbors; }
 #endif // USE_SPACE_PARTITIONING
 
 	FVector2D GetAverageNeighborPos() const;
@@ -55,29 +55,40 @@ private:
 	//int NrOfCellsX{ 10 };
 	//TArray<FVector2D> OldPositions{};
 #else // No space partitioning
-	TArray<ASteeringAgent*> Neighbors{};
+	ASteeringAgent** pNeighbors{nullptr}; // memory pool pointer into Agents array
 #endif // USE_SPACE_PARTITIONING
-	
+
 	float NeighborhoodRadius{200.f};
 	int NrOfNeighbors{0};
 
 	ASteeringAgent* pAgentToEvade{nullptr};
 	
 	//Steering Behaviors
-	//std::unique_ptr<Separation> pSeparationBehavior{};
-	//std::unique_ptr<Cohesion> pCohesionBehavior{};
-	//std::unique_ptr<VelocityMatch> pVelMatchBehavior{};
-	//std::unique_ptr<Seek> pSeekBehavior{};
-	//std::unique_ptr<Wander> pWanderBehavior{};
-	//std::unique_ptr<Evade> pEvadeBehavior{};
+	std::unique_ptr<Separation> pSeparationBehavior{};
+	std::unique_ptr<Cohesion> pCohesionBehavior{};
+	std::unique_ptr<VelocityMatch> pVelMatchBehavior{};
+	std::unique_ptr<Seek> pSeekBehavior{};
+	std::unique_ptr<Wander> pWanderBehavior{};
+	std::unique_ptr<Evade> pEvadeBehavior{};
 	
 	std::unique_ptr<BlendedSteering> pBlendedSteering{};
 	std::unique_ptr<PrioritySteering> pPrioritySteering{};
+	
+    float WeightCohesion      {0.2f};
+    float WeightSeparation    {0.2f};
+    float WeightVelocityMatch {0.2f};
+    float WeightSeek          {0.2f};
+    float WeightWander        {0.2f};
+	
+	bool bHasSeekTarget{false};
 
 	// UI and rendering
 	bool DebugRenderSteering{false};
 	bool DebugRenderNeighborhood{true};
 	bool DebugRenderPartitions{true};
+	
+	// Add:
+	static constexpr int DebugNeighborhoodAgentCount{3};
 
 	void RenderNeighborhood();
 };
