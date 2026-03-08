@@ -34,14 +34,18 @@ void ALevel_Flocking::BeginPlay()
 void ALevel_Flocking::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-	
-	if (!pFlock)
-		return;
+
+	if (!pFlock) return;
 
 	pFlock->ImGuiRender(WindowPos, WindowSize);
 	pFlock->Tick(DeltaTime);
 	pFlock->RenderDebug();
+
 	if (bUseMouseTarget)
+	{
 		pFlock->SetTarget_Seek(MouseTarget);
+		pFlock->SetTarget_EvadeTarget(MouseTarget);  // always pass, Flock decides if used
+	}
 }
+
 

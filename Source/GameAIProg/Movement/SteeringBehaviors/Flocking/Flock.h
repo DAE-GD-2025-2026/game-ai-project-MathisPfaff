@@ -43,6 +43,8 @@ public:
     FVector2D GetAverageNeighborVelocity() const;
 
     void SetTarget_Seek(FSteeringParams const& Target);
+    void SetTarget_EvadeTarget(FSteeringParams const& Target);
+    
 
 private:
     UWorld* pWorld{nullptr};

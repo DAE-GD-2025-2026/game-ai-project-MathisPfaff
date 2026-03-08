@@ -175,7 +175,12 @@ void Flock::Tick(float DeltaTime)
     // Update evade target
     if (pEvadeTargetAgent)
     {
-        pEvadeTargetAgent->Tick(DeltaTime);  // manual tick
+        if (EvadeTargetBehaviorMode == EEvadeTargetBehavior::Seek)
+            pEvadeTargetAgent->SetSteeringBehavior(pEvadeTargetSeek.get());
+        else
+            pEvadeTargetAgent->SetSteeringBehavior(pEvadeTargetWander.get());
+
+        pEvadeTargetAgent->Tick(DeltaTime);
 
         FSteeringParams evadeParams{};
         evadeParams.Position       = FVector2D(pEvadeTargetAgent->GetActorLocation());
@@ -197,14 +202,13 @@ void Flock::Tick(float DeltaTime)
         else
             RegisterNeighbors(Agents[i]);
 
-        // Manual tick for each agent
         Agents[i]->Tick(DeltaTime);
 
-        // Update previous position after tick
         if (bUseSpacePartitioning)
             AgentPrevPositions[i] = FVector2D(Agents[i]->GetActorLocation());
     }
 }
+
 
 void Flock::RenderDebug()
 {
@@ -319,6 +323,15 @@ void Flock::ImGuiRender(ImVec2 const& WindowPos, ImVec2 const& WindowSize)
         ImGui::Spacing();
         ImGui::Separator();
         ImGui::Spacing();
+        
+        ImGui::Text("Evade Target Behavior");
+        int evadeMode = static_cast<int>(EvadeTargetBehaviorMode);
+        if (ImGui::RadioButton("ET: Wander", &evadeMode, 0))
+            EvadeTargetBehaviorMode = EEvadeTargetBehavior::Wander;
+        ImGui::SameLine();
+        if (ImGui::RadioButton("ET: Seek", &evadeMode, 1))
+            EvadeTargetBehaviorMode = EEvadeTargetBehavior::Seek;
+        
 
         ImGui::Text("Evade Target");
         ImGui::Spacing();
@@ -430,3 +443,10 @@ void Flock::SetTarget_Seek(FSteeringParams const& Target)
         }
     }
 }
+
+void Flock::SetTarget_EvadeTarget(FSteeringParams const& Target)
+{
+    if (pEvadeTargetSeek)
+        pEvadeTargetSeek->SetTarget(Target);
+}
+
