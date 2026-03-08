@@ -181,7 +181,7 @@ SteeringOutput Evade::CalculateSteering(float DeltaT, ASteeringAgent& Agent)
 	
 	if (Agent.GetDebugRenderingEnabled())
 	{
-		DrawDebugCircle(Agent.GetWorld(), FVector(Agent.GetPosition(), 0), evadeDistance, 16, 
+		DrawDebugCircle(Agent.GetWorld(), FVector(Agent.GetPosition(), 0), evadeDistance, 16,
 			FColor::Orange, false, -1.f, 0,2.f, 
 			FVector(0, 1, 0), FVector(1, 0, 0), false);
 		

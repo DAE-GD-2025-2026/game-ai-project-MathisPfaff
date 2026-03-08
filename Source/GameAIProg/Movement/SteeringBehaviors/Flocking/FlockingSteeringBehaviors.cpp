@@ -39,7 +39,10 @@ SteeringOutput Separation::CalculateSteering(float deltaT, ASteeringAgent& pAgen
 			separationVelocity += toAgent.GetSafeNormal() / dist;
 	}
 
-	output.LinearVelocity = separationVelocity.GetSafeNormal() * pAgent.GetMaxLinearSpeed();
+	// Normalize final result and scale to MaxLinearSpeed — same scale as all other behaviors
+	if (!separationVelocity.IsNearlyZero())
+		output.LinearVelocity = separationVelocity.GetSafeNormal() * pAgent.GetMaxLinearSpeed();
+
 	return output;
 }
 
@@ -51,8 +54,13 @@ SteeringOutput VelocityMatch::CalculateSteering(float deltaT, ASteeringAgent& pA
 	if (pFlock->GetNrOfNeighbors() == 0)
 		return output;
 
-	// Use the actual average velocity, not a normalized + rescaled version
-	output.LinearVelocity = pFlock->GetAverageNeighborVelocity();
+	const FVector2D avgVel = pFlock->GetAverageNeighborVelocity();
+    
+	// Normalize and scale to MaxLinearSpeed so it has equal weight in BlendedSteering
+	if (!avgVel.IsNearlyZero())
+		output.LinearVelocity = avgVel.GetSafeNormal() * pAgent.GetMaxLinearSpeed();
+
 	return output;
 }
+
 
