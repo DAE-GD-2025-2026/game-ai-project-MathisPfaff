@@ -7,7 +7,6 @@
 #include <memory>
 #include "imgui.h"
 
-// Forward declaration — avoids including SpacePartitioning.h here
 class CellSpace;
 
 enum class EEvadeTargetBehavior : uint8
@@ -37,7 +36,7 @@ public:
     void RegisterNeighbors(ASteeringAgent* const Agent);
 
     int GetNrOfNeighbors() const;
-    const ASteeringAgent* const* GetNeighbors() const;  // unified accessor
+    const ASteeringAgent* const* GetNeighbors() const;
 
     FVector2D GetAverageNeighborPos() const;
     FVector2D GetAverageNeighborVelocity() const;

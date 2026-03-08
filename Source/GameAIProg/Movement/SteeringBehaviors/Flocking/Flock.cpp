@@ -112,7 +112,6 @@ Flock::~Flock()
 {
     delete[] pNeighbors;
     pNeighbors = nullptr;
-    // pPartitionedSpace is a unique_ptr — cleaned up automatically
 }
 
 // --- Unified neighbor accessors (runtime toggle) ---
