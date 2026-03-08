@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-// #define GAMEAI_USE_SPACE_PARTITIONING
+#define GAMEAI_USE_SPACE_PARTITIONING
 
 #include "FlockingSteeringBehaviors.h"
 #include "Movement/SteeringBehaviors/SteeringAgent.h"
@@ -25,7 +25,7 @@ public:
         UWorld* pWorld,
         TSubclassOf<ASteeringAgent> AgentClass,
         int FlockSize = 10,
-        float WorldSize = 100.f,
+        float WorldSize = 1000.f,
         ASteeringAgent* const pAgentToEvade = nullptr,
         bool bTrimWorld = false);
 
@@ -36,8 +36,9 @@ public:
     void ImGuiRender(ImVec2 const& WindowPos, ImVec2 const& WindowSize);
 
 #ifdef GAMEAI_USE_SPACE_PARTITIONING
-    //const TArray<ASteeringAgent*>& GetNeighbors() const { return pPartitionedSpace->GetNeighbors(); }
-    //int GetNrOfNeighbors() const { return pPartitionedSpace->GetNrOfNeighbors(); }
+    void RegisterNeighbors(ASteeringAgent* const Agent, const FVector2D& OldPos);
+    int GetNrOfNeighbors() const { return pPartitionedSpace->GetNrOfNeighbors(); }
+    const TArray<ASteeringAgent*>& GetNeighbors() const { return pPartitionedSpace->GetNeighbors(); }
 #else
     void RegisterNeighbors(ASteeringAgent* const Agent);
     int GetNrOfNeighbors() const { return NrOfNeighbors; }
@@ -56,6 +57,8 @@ private:
     TArray<ASteeringAgent*> Agents{};
 
 #ifdef GAMEAI_USE_SPACE_PARTITIONING
+    std::unique_ptr<CellSpace> pPartitionedSpace{};
+    TArray<FVector2D> AgentPrevPositions{};
 #else
     ASteeringAgent** pNeighbors{nullptr};
 #endif
@@ -99,7 +102,7 @@ private:
     bool DebugRenderPartitions{true};
     bool DebugRenderEvadeTarget{true};
 
-    static constexpr int DebugNeighborhoodAgentCount{3};
+    static constexpr int DebugNeighborhoodAgentCount{1};
 
     void RenderNeighborhood();
     void RenderEvadeTarget();

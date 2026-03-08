@@ -14,7 +14,10 @@ Flock::Flock(
     , FlockSize{FlockSize}
     , pAgentToEvade{pAgentToEvade}
 {Agents.SetNum(FlockSize);
+
+#ifndef GAMEAI_USE_SPACE_PARTITIONING
     pNeighbors = new ASteeringAgent*[FlockSize];
+#endif
 
     // --- Flocking blended behaviors ---
     pCohesionBehavior   = std::make_unique<Cohesion>(this);
@@ -53,12 +56,10 @@ Flock::Flock(
 
         if (pEvadeTargetAgent)
         {
-            // Give the evade target its own wander behavior by default
             pEvadeTargetWander = std::make_unique<Wander>();
             pEvadeTargetSeek   = std::make_unique<Seek>();
             pEvadeTargetAgent->SetSteeringBehavior(pEvadeTargetWander.get());
             pEvadeTargetAgent->SetDebugRenderingEnabled(false);
-            // Make it visually distinct — scale it up
             pEvadeTargetAgent->SetActorScale3D(FVector(2.5f, 2.5f, 2.5f));
         }
     }
@@ -77,43 +78,61 @@ Flock::Flock(
         if (Agents[i])
         {
             Agents[i]->SetDebugRenderingEnabled(false);
-            // Use PrioritySteering (Evade > Blended)
             Agents[i]->SetSteeringBehavior(pPrioritySteering.get());
         }
     }
+
+#ifdef GAMEAI_USE_SPACE_PARTITIONING
+    pPartitionedSpace = std::make_unique<CellSpace>(pWorld, WorldSize, WorldSize, 10, 10, FlockSize);
+    AgentPrevPositions.SetNum(FlockSize);
+    for (int i = 0; i < FlockSize; ++i)
+    {
+        if (Agents[i])
+        {
+            pPartitionedSpace->AddAgent(*Agents[i]);
+            AgentPrevPositions[i] = FVector2D(Agents[i]->GetActorLocation());
+        }
+    }
+#endif
+
 }
 
 Flock::~Flock()
 {
+#ifndef GAMEAI_USE_SPACE_PARTITIONING
     delete[] pNeighbors;
     pNeighbors = nullptr;
+#endif
 }
 
 void Flock::Tick(float DeltaTime)
 {
-    // --- Update EvadeTarget agent ---
     if (pEvadeTargetAgent)
     {
-        // Update flock's evade behavior target from EvadeTarget agent each tick
         FSteeringParams evadeParams{};
         evadeParams.Position       = FVector2D(pEvadeTargetAgent->GetActorLocation());
         evadeParams.LinearVelocity = FVector2D(pEvadeTargetAgent->GetVelocity());
         pEvadeBehavior->SetTarget(evadeParams);
     }
 
-    // --- Update seek weight ---
     auto& behaviors = pBlendedSteering->GetWeightedBehaviorsRef();
     if (!bHasSeekTarget)
         behaviors[3].Weight = 0.f;
 
-    // --- Tick flock agents ---
     for (int i = 0; i < FlockSize; ++i)
     {
         if (!Agents[i]) continue;
         Agents[i]->SetDebugRenderingEnabled(DebugRenderSteering);
+
+#ifdef GAMEAI_USE_SPACE_PARTITIONING
+        RegisterNeighbors(Agents[i], AgentPrevPositions[i]);
+        AgentPrevPositions[i] = FVector2D(Agents[i]->GetActorLocation());
+#else
         RegisterNeighbors(Agents[i]);
+#endif
     }
 }
+
 
 void Flock::RenderDebug()
 {
@@ -122,6 +141,11 @@ void Flock::RenderDebug()
 
     if (DebugRenderEvadeTarget)
         RenderEvadeTarget();
+
+#ifdef GAMEAI_USE_SPACE_PARTITIONING
+    if (DebugRenderPartitions)
+        pPartitionedSpace->RenderCells();
+#endif
 }
 
 void Flock::RenderEvadeTarget()
@@ -131,28 +155,12 @@ void Flock::RenderEvadeTarget()
     const FVector loc = pEvadeTargetAgent->GetActorLocation();
     const FVector loc3D = FVector(loc.X, loc.Y, 10.f);
 
-    // Draw a large orange circle to mark the evade target's radius
     DrawDebugCircle(
-        pWorld,
-        loc3D,
-        EvadeRadius,
-        32,
-        FColor::Orange,
-        false, -1.f, 0,
-        8.f,
-        FVector(1, 0, 0),
-        FVector(0, 1, 0)
-    );
+        pWorld, loc3D, EvadeRadius, 32,
+        FColor::Orange, false, -1.f, 0, 8.f,
+        FVector(1, 0, 0), FVector(0, 1, 0));
 
-    // Draw a red sphere so the agent is always visible
-    DrawDebugSphere(
-        pWorld,
-        loc3D,
-        50.f,
-        12,
-        FColor::Red,
-        false, -1.f
-    );
+    DrawDebugSphere(pWorld, loc3D, 50.f, 12, FColor::Red, false, -1.f);
 }
 
 void Flock::ImGuiRender(ImVec2 const& WindowPos, ImVec2 const& WindowSize)
@@ -219,12 +227,10 @@ void Flock::ImGuiRender(ImVec2 const& WindowPos, ImVec2 const& WindowSize)
         ImGui::Separator();
         ImGui::Spacing();
 
-        // --- Evade Target Section ---
         ImGui::Text("Evade Target");
         ImGui::Spacing();
-
         ImGui::Checkbox("Render Evade Target Radius", &DebugRenderEvadeTarget);
-        
+
         ImGui::Spacing();
         ImGui::Separator();
         ImGui::Spacing();
@@ -232,6 +238,7 @@ void Flock::ImGuiRender(ImVec2 const& WindowPos, ImVec2 const& WindowSize)
         ImGui::Text("Debug Rendering");
         ImGui::Checkbox("Render Neighborhood (first 3 agents)", &DebugRenderNeighborhood);
         ImGui::Checkbox("Render Steering Debug", &DebugRenderSteering);
+        ImGui::Checkbox("Render Partitions", &DebugRenderPartitions);
 
         ImGui::End();
     }
@@ -250,17 +257,30 @@ void Flock::RenderNeighborhood()
         ASteeringAgent* pAgent = Agents[i];
         if (!pAgent) continue;
 
-        const FVector agentLoc  = pAgent->GetActorLocation();
+        const FVector agentLoc   = pAgent->GetActorLocation();
         const FVector agentLoc3D = FVector(agentLoc.X, agentLoc.Y, 10.f);
 
+#ifdef GAMEAI_USE_SPACE_PARTITIONING
+        RegisterNeighbors(pAgent, FVector2D(pAgent->GetActorLocation()));
+#else
         RegisterNeighbors(pAgent);
-        const int snapshotNeighborCount = NrOfNeighbors;
+#endif
 
         DrawDebugCircle(pWorld, agentLoc3D, NeighborhoodRadius, 32,
             FColor::Yellow, false, -1.f, 0, 5.f,
             FVector(1,0,0), FVector(0,1,0));
 
-        RegisterNeighbors(pAgent);
+#ifdef GAMEAI_USE_SPACE_PARTITIONING
+        const TArray<ASteeringAgent*>& neighbors = pPartitionedSpace->GetNeighbors();
+        for (int n = 0; n < NrOfNeighbors; ++n)
+        {
+            if (!neighbors[n]) continue;
+            const FVector neighborLoc = neighbors[n]->GetActorLocation();
+            DrawDebugLine(pWorld, agentLoc3D,
+                FVector(neighborLoc.X, neighborLoc.Y, 10.f),
+                FColor::Cyan, false, -1.f, 0, 2.f);
+        }
+#else
         for (int n = 0; n < NrOfNeighbors; ++n)
         {
             if (!pNeighbors[n]) continue;
@@ -269,6 +289,7 @@ void Flock::RenderNeighborhood()
                 FVector(neighborLoc.X, neighborLoc.Y, 10.f),
                 FColor::Cyan, false, -1.f, 0, 2.f);
         }
+#endif
 
         DrawDebugSphere(pWorld, agentLoc3D, 30.f, 8,
             i == 0 ? FColor::Red : (i == 1 ? FColor::Green : FColor::Blue),
@@ -276,7 +297,15 @@ void Flock::RenderNeighborhood()
     }
 }
 
-#ifndef GAMEAI_USE_SPACE_PARTITIONING
+#ifdef GAMEAI_USE_SPACE_PARTITIONING
+void Flock::RegisterNeighbors(ASteeringAgent* const pAgent, const FVector2D& OldPos)
+{
+    if (!pAgent) return;
+    pPartitionedSpace->UpdateAgentCell(*pAgent, OldPos);
+    pPartitionedSpace->RegisterNeighbors(*pAgent, NeighborhoodRadius);
+    NrOfNeighbors = pPartitionedSpace->GetNrOfNeighbors();
+}
+#else
 void Flock::RegisterNeighbors(ASteeringAgent* const pAgent)
 {
     NrOfNeighbors = 0;
@@ -306,8 +335,14 @@ FVector2D Flock::GetAverageNeighborPos() const
     FVector2D avgPosition = FVector2D::ZeroVector;
     if (NrOfNeighbors == 0) return avgPosition;
 
+#ifdef GAMEAI_USE_SPACE_PARTITIONING
+    const TArray<ASteeringAgent*>& neighbors = pPartitionedSpace->GetNeighbors();
+    for (int i = 0; i < NrOfNeighbors; ++i)
+        avgPosition += FVector2D(neighbors[i]->GetActorLocation());
+#else
     for (int i = 0; i < NrOfNeighbors; ++i)
         avgPosition += FVector2D(pNeighbors[i]->GetActorLocation());
+#endif
 
     return avgPosition / static_cast<float>(NrOfNeighbors);
 }
@@ -317,8 +352,14 @@ FVector2D Flock::GetAverageNeighborVelocity() const
     FVector2D avgVelocity = FVector2D::ZeroVector;
     if (NrOfNeighbors == 0) return avgVelocity;
 
+#ifdef GAMEAI_USE_SPACE_PARTITIONING
+    const TArray<ASteeringAgent*>& neighbors = pPartitionedSpace->GetNeighbors();
+    for (int i = 0; i < NrOfNeighbors; ++i)
+        avgVelocity += FVector2D(neighbors[i]->GetVelocity());
+#else
     for (int i = 0; i < NrOfNeighbors; ++i)
         avgVelocity += FVector2D(pNeighbors[i]->GetVelocity());
+#endif
 
     return avgVelocity / static_cast<float>(NrOfNeighbors);
 }

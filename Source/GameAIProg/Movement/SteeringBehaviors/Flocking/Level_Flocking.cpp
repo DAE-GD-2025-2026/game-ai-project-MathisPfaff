@@ -24,7 +24,7 @@ void ALevel_Flocking::BeginPlay()
 			GetWorld(),
 			SteeringAgentClass,
 			FlockSize,
-			TrimWorld->GetTrimWorldSize(),
+			TrimWorld->GetTrimWorldSize() * 2.f,
 			pAgentToEvade,
 			true)
 			);
