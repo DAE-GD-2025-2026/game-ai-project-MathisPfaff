@@ -140,6 +140,15 @@ void CellSpace::RenderCells() const
 		DrawDebugLine(pWorld, p1, p2, lineColor, false, -1.f, 0, 7.f);
 		DrawDebugLine(pWorld, p2, p3, lineColor, false, -1.f, 0, 7.f);
 		DrawDebugLine(pWorld, p3, p0, lineColor, false, -1.f, 0, 7.f);
+		
+        const FVector center(
+            (min.X + max.X) * 0.5f,
+            (min.Y + max.Y) * 0.5f,
+            15.f);
+        DrawDebugString(pWorld, center,
+            FString::FromInt(static_cast<int>(cell.Agents.size())),
+            nullptr, FColor::White, -1.f, false, 1.f);
+		
 	}
 }
 

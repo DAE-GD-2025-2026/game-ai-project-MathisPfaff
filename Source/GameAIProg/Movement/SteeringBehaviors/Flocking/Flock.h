@@ -1,16 +1,14 @@
 ﻿#pragma once
 
-#define GAMEAI_USE_SPACE_PARTITIONING
-
 #include "FlockingSteeringBehaviors.h"
 #include "Movement/SteeringBehaviors/SteeringAgent.h"
 #include "Movement/SteeringBehaviors/SteeringHelpers.h"
 #include "Movement/SteeringBehaviors/CombinedSteering/CombinedSteeringBehaviors.h"
 #include <memory>
 #include "imgui.h"
-#ifdef GAMEAI_USE_SPACE_PARTITIONING
-#include "../SpacePartitioning/SpacePartitioning.h"
-#endif
+
+// Forward declaration — avoids including SpacePartitioning.h here
+class CellSpace;
 
 enum class EEvadeTargetBehavior : uint8
 {
@@ -35,15 +33,11 @@ public:
     void RenderDebug();
     void ImGuiRender(ImVec2 const& WindowPos, ImVec2 const& WindowSize);
 
-#ifdef GAMEAI_USE_SPACE_PARTITIONING
     void RegisterNeighbors(ASteeringAgent* const Agent, const FVector2D& OldPos);
-    int GetNrOfNeighbors() const { return pPartitionedSpace->GetNrOfNeighbors(); }
-    const TArray<ASteeringAgent*>& GetNeighbors() const { return pPartitionedSpace->GetNeighbors(); }
-#else
     void RegisterNeighbors(ASteeringAgent* const Agent);
-    int GetNrOfNeighbors() const { return NrOfNeighbors; }
-    const ASteeringAgent* const* GetNeighbors() const { return pNeighbors; }
-#endif
+
+    int GetNrOfNeighbors() const;
+    const ASteeringAgent* const* GetNeighbors() const;  // unified accessor
 
     FVector2D GetAverageNeighborPos() const;
     FVector2D GetAverageNeighborVelocity() const;
@@ -56,24 +50,24 @@ private:
     int FlockSize{0};
     TArray<ASteeringAgent*> Agents{};
 
-#ifdef GAMEAI_USE_SPACE_PARTITIONING
+    // --- Space Partitioning ---
     std::unique_ptr<CellSpace> pPartitionedSpace{};
     TArray<FVector2D> AgentPrevPositions{};
-#else
+    bool bUseSpacePartitioning{true};
+
+    // --- Fallback neighbors ---
     ASteeringAgent** pNeighbors{nullptr};
-#endif
+    int NrOfNeighbors{0};
 
     float NeighborhoodRadius{200.f};
-    int NrOfNeighbors{0};
 
     ASteeringAgent* pAgentToEvade{nullptr};
 
-    // ---- EvadeTarget agent (spawned, identifiable) ----
+    // ---- EvadeTarget agent ----
     ASteeringAgent* pEvadeTargetAgent{nullptr};
     float EvadeRadius{300.f};
     EEvadeTargetBehavior EvadeTargetBehaviorMode{EEvadeTargetBehavior::Wander};
 
-    // EvadeTarget's own steering
     std::unique_ptr<Wander> pEvadeTargetWander{};
     std::unique_ptr<Seek>   pEvadeTargetSeek{};
 

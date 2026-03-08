@@ -35,7 +35,7 @@ SteeringOutput Separation::CalculateSteering(float deltaT, ASteeringAgent& pAgen
 		FVector2D toAgent = agentPos - neighborPos;
 		const float dist = toAgent.Size();
 
-		if (dist > KINDA_SMALL_NUMBER)
+		if (dist > 0.f)
 			separationVelocity += toAgent.GetSafeNormal() / dist;
 	}
 
