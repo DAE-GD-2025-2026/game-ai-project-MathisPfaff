@@ -1,4 +1,4 @@
-#pragma optimize("", off)
+//#pragma optimize("", off)
 #include "Flock.h"
 #include "FlockingSteeringBehaviors.h"
 #include "Shared/ImGuiHelpers.h"
