@@ -31,22 +31,17 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="PathfindingLevel|Input")
 	UInputAction* SetNodeTerrainWaterAction{};
 
-	// Sets default values for this actor's properties
 	ALevel_PathfindingAStar();
-
-	// Called every frame
 	virtual void Tick(float DeltaTime) override;
+
 protected:
-	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
-	
 	virtual void BeginDestroy() override;
-	
 	virtual void BindLevelInputActions() override;
 
 private:
 	UPROPERTY()
-	ASteeringAgent* Agent{nullptr}; // ref
+	ASteeringAgent* Agent{nullptr};
 	PathFollow PathFollow{};
 	
 	GameAI::TerrainGridGraph* TerrainGraph{nullptr};
@@ -55,16 +50,20 @@ private:
 	
 	int PathStartNodeId{44};
 	int PathEndNodeId{88};
+	
+	float DefaultAgentSpeed{600.f};
+
+	// Algorithm selection: 0 = BFS, 1 = A*
+	int SelectedAlgorithm = 0;
+
 	int SelectedHeuristic = 4;
 	GameAI::HeuristicFunctions::Heuristic HeuristicFunction = GameAI::HeuristicFunctions::Chebyshev;
 	std::vector<GameAI::Node*> FoundPath{};
 
 	void CalculatePath();
-	void UpdateAgentPath(std::vector<GameAI::Node*> const & Path);
-	
+	void UpdateAgentPath(std::vector<GameAI::Node*> const& Path);
 	void UpdateImGui();
 	
-	// Input functions
 	void SetStartNodeId();
 	void SetEndNodeId();
 	void SetNodeTerrain(GameAI::TerrainNode::Type TerrainType);
