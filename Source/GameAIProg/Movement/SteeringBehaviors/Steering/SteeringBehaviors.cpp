@@ -1,4 +1,4 @@
-#pragma optimize("", off)
+//#pragma optimize("", off)
 #include "SteeringBehaviors.h"
 #include "GameAIProg/Movement/SteeringBehaviors/SteeringAgent.h"
 #include "DrawDebugHelpers.h"
