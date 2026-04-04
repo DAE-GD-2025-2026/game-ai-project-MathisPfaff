@@ -42,7 +42,7 @@ void ALevel_PathfindingAStar::BeginPlay()
 	Renderer->SetRenderOptions(RenderOptions);
 	
 	NodeFactory = new TerrainNodeFactory{};
-	TerrainGraph = new TerrainGridGraph{NodeFactory, 10, 10, 200.0f, 1.0f, 
+	TerrainGraph = new TerrainGridGraph{NodeFactory, 10, 10, 200.0f, 200.0f, 
 		FVector2D{-1000.0f, -1000.0f}, false};
 	
 	CalculatePath();
