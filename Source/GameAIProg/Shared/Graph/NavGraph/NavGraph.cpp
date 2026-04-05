@@ -48,12 +48,62 @@ int GameAI::NavGraph::GetNodeIdFromEdgeIndex(int EdgeIdx) const
 
 void GameAI::NavGraph::CreateNavigationGraph()
 {
-	//1. Go over all the edges of the navigation mesh and create nodes
-			// Create node here
+    const std::vector<TriPolygon::Edge>&     edges     = pNavPoly->GetEdges();
+    const std::vector<TriPolygon::Triangle>& triangles = pNavPoly->GetTriangles();
 
-	//2. Create connections now that every node is created	
-		//2 valid nodes -> 1 connection
-		//3 valid nodes -> 3 connections
-		
-	//3. Set the connections cost to the actual distance
+    // ── A. Loop over all lines (edges). Only shared edges are portals ──────
+    for (int edgeIdx = 0; edgeIdx < static_cast<int>(edges.size()); ++edgeIdx)
+    {
+        const TriPolygon::Edge& edge = edges[edgeIdx];
+
+        // Count how many triangles contain this edge
+        int triCount = 0;
+        for (const TriPolygon::Triangle& tri : triangles)
+        {
+            if (tri.HasEdge(edge))
+                ++triCount;
+        }
+
+        // Only shared edges (portals between 2 triangles) get a node
+        if (triCount >= 2)
+        {
+            FVector p1 = edge.GetP1(*pNavPoly);
+            FVector p2 = edge.GetP2(*pNavPoly);
+            FVector2D midpoint{ (p1.X + p2.X) * 0.5f, (p1.Y + p2.Y) * 0.5f };
+
+            AddNode(std::make_unique<NavGraphNode>(midpoint, edgeIdx));
+        }
+    }
+
+    // ── B. For each triangle, find its nodes and connect them ─────────────
+    for (const TriPolygon::Triangle& tri : triangles)
+    {
+        std::array<TriPolygon::Edge, 3> triEdges = tri.GetEdges();
+
+        std::vector<int> nodeIds;
+        for (const TriPolygon::Edge& triEdge : triEdges)
+        {
+            int edgeIdx = pNavPoly->FindEdgeIndex(triEdge).value_or(-1);
+            int nodeId  = GetNodeIdFromEdgeIndex(edgeIdx);
+            if (nodeId != Graphs::InvalidNodeId)
+                nodeIds.push_back(nodeId);
+        }
+
+        // 2 valid nodes → 1 connection
+        if (nodeIds.size() == 2)
+        {
+            AddConnection(nodeIds[0], nodeIds[1]);
+        }
+        // 3 valid nodes → 3 connections (fully connect the triple)
+        else if (nodeIds.size() == 3)
+        {
+            AddConnection(nodeIds[0], nodeIds[1]);
+            AddConnection(nodeIds[1], nodeIds[2]);
+            AddConnection(nodeIds[0], nodeIds[2]);
+        }
+    }
+
+    // ── C. Set connection costs to actual Euclidean distance ──────────────
+    SetConnectionCostsToDistances();
 }
+
