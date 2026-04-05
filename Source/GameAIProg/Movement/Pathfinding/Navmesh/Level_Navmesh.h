@@ -45,6 +45,7 @@ private:
 	bool bDrawNavGraph{true};
 	bool bDrawPath{true};
 	bool bDrawPortals{false};
+	bool bOptimizePath{true};
 	
 	void UpdateImGui();
 	

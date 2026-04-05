@@ -156,6 +156,7 @@ void ALevel_Navmesh::UpdateImGui()
 		ImGui::Checkbox("NavGraph", &bDrawNavGraph);
 		ImGui::Checkbox("Path", &bDrawPath);
 		ImGui::Checkbox("Portals", &bDrawPortals);
+		ImGui::Checkbox("Optimize Path (SSFA)", &bOptimizePath);
 		
 		//End
 		ImGui::End();
@@ -232,13 +233,16 @@ void ALevel_Navmesh::SetTarget()
 		DebugNodePositions,
 		DebugPortals);
 
-	DebugDrawPath = Path;
-	PathFollow.SetPath(Path);
+	std::vector<FVector2D> ActivePath = bOptimizePath ? Path : DebugNodePositions;
+
+	DebugDrawPath = ActivePath;
+	PathFollow.SetPath(ActivePath);
 
 	Agent->SetMaxLinearSpeed(DefaultMaxLinearSpeed);
 
-	if (Path.size() > 0)
+	if (ActivePath.size() > 0)
 	{
-		Agent->SetPosition(Path[0]);
+		Agent->SetPosition(ActivePath[0]);
 	}
 }
+
