@@ -1,6 +1,7 @@
 ﻿#include "NavGraphPathfinding.h"
 
 #include "AStar.h"
+#include "Heuristics.h"
 #include "PathSmoothing.h"
 #include "VectorTypes.h"
 #include "Shared/Graph/NavGraph/NavGraph.h"
@@ -11,27 +12,87 @@ using namespace GameAI;
 std::vector<FVector2D> NavMeshPathfinding::FindPath(const FVector2D& startPos, const FVector2D& endPos,
 	NavGraph* const pNavGraph, std::vector<FVector2D>& debugNodePositions, std::vector<NavLine>& debugPortals) 
 {
-	//Create the path to return
 	std::vector<FVector2D> finalPath{};
 
-	//Get the start and endTriangle
+	// ── A. Get start and end triangles ────────────────────────────────────
+	const TriPolygon* pNavPoly = pNavGraph->GetNavPolygon();
 
-	//We have valid start/end triangles and they are not the same
-	//=> Start looking for a path
-	//Copy the graph
+	const TriPolygon::Triangle* startTriangle = pNavPoly->GetTriangleAtPosition(startPos, true);
+	const TriPolygon::Triangle* endTriangle   = pNavPoly->GetTriangleAtPosition(endPos,   true);
 
-	//Create Extra node for the Start Node (Agent's position
+	if (!startTriangle || !endTriangle)
+		return finalPath;
 
-	//Create extra node for the endNode
+	// If same triangle: direct straight path, no graph needed
+	if (*startTriangle == *endTriangle)
+	{
+		finalPath.push_back(startPos);
+		finalPath.push_back(endPos);
+		return finalPath;
+	}
 
-	//Run A star on new graph
+	// ── B. Clone the graph ────────────────────────────────────────────────
+	std::unique_ptr<NavGraph> clonedGraph = pNavGraph->Clone();
 
-	//Debug Visualisation
+	// ── C. Create start NavGraphNode (LineIdx = -1) ───────────────────────
+	int startNodeId = clonedGraph->AddNode(std::make_unique<NavGraphNode>(startPos, -1));
 
-	// Extra: Run optimiser on new graph (First check if everything works without SSFA!)
-	// debugPortals = SSFA::FindPortals(nodes, *pNavGraph->GetNavPolygon());
-	// finalPath = SSFA::OptimizePortals(debugPortals, *pNavGraph->GetNavPolygon());
-	
+	for (const TriPolygon::Edge& edge : startTriangle->GetEdges())
+	{
+		int edgeIdx    = pNavPoly->FindEdgeIndex(edge).value_or(-1);
+		int portalNode = clonedGraph->GetNodeIdFromEdgeIndex(edgeIdx);
+		if (portalNode != Graphs::InvalidNodeId)
+		{
+			FVector2D portalPos = clonedGraph->GetNode(portalNode)->GetPosition();
+			float dist = FVector2D::Distance(startPos, portalPos);
+			auto conn = std::make_unique<Connection>(startNodeId, portalNode);
+			conn->SetWeight(dist);
+			clonedGraph->AddConnection(std::move(conn));
+		}
+	}
+
+	// ── D. Create end NavGraphNode (LineIdx = -1) ─────────────────────────
+	int endNodeId = clonedGraph->AddNode(std::make_unique<NavGraphNode>(endPos, -1));
+
+	for (const TriPolygon::Edge& edge : endTriangle->GetEdges())
+	{
+		int edgeIdx    = pNavPoly->FindEdgeIndex(edge).value_or(-1);
+		int portalNode = clonedGraph->GetNodeIdFromEdgeIndex(edgeIdx);
+		if (portalNode != Graphs::InvalidNodeId)
+		{
+			FVector2D portalPos = clonedGraph->GetNode(portalNode)->GetPosition();
+			float dist = FVector2D::Distance(endPos, portalPos);
+			auto conn = std::make_unique<Connection>(endNodeId, portalNode);
+			conn->SetWeight(dist);
+			clonedGraph->AddConnection(std::move(conn));
+		}
+	}
+
+	// ── E. Run A* ─────────────────────────────────────────────────────────
+	AStar aStar{ clonedGraph.get(), HeuristicFunctions::Euclidean };
+
+	Node* pStartNode = clonedGraph->GetNode(startNodeId).get();
+	Node* pEndNode   = clonedGraph->GetNode(endNodeId).get();
+
+	std::vector<Node*> nodePath = aStar.FindPath(pStartNode, pEndNode);
+
+	if (nodePath.empty())
+		return finalPath;
+
+	// Save the raw A* portal midpoints for debug visualisation
+	for (Node* pNode : nodePath)
+		debugNodePositions.push_back(pNode->GetPosition());
+
+	// ── F. SSFA: build oriented portals ───────────────────────────────────
+	// FindPortals orients each shared edge so P1 = right, P2 = left.
+	// The degenerate first/last portals represent start and end positions.
+	// debugPortals is used both for the SSFA input AND for the green portal
+	// debug lines drawn in Level_Navmesh (bDrawPortals toggle).
+	debugPortals = SSFA::FindPortals(nodePath, *pNavGraph->GetNavPolygon());
+
+	// ── G. SSFA: produce the smoothed path ────────────────────────────────
+	finalPath = SSFA::OptimizePortals(debugPortals, *pNavGraph->GetNavPolygon());
+
 	return finalPath;
 }
 
@@ -39,6 +100,5 @@ std::vector<FVector2D> NavMeshPathfinding::FindPath(const FVector2D& startPos, c
 {
 	std::vector<FVector2D> debugNodePositions{};
 	std::vector<NavLine> debugPortals{};
-
 	return FindPath(startPos, endPos, pNavGraph, debugNodePositions, debugPortals);
 }
