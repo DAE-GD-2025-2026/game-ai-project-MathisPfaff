@@ -94,7 +94,7 @@ void ALevel_PathfindingAStar::CalculatePath()
 		TerrainNode* const startNode = TerrainGraph->GetNodeAs<TerrainNode>(PathStartNodeId);
 		TerrainNode* const endNode   = TerrainGraph->GetNodeAs<TerrainNode>(PathEndNodeId);
 
-		// Switch between BFS and A* based on UI selection
+		// Switch between BFS and A*
 		if (SelectedAlgorithm == 0)
 		{
 			BFS pathfinder(TerrainGraph);
@@ -183,9 +183,9 @@ void ALevel_PathfindingAStar::UpdateImGui()
 
 	ImGui::Spacing();
 
-	// --- Heuristic selector (only meaningful for A*) ---
+	// --- Heuristic selector ---
 	if (SelectedAlgorithm == 0)
-		ImGui::BeginDisabled(); // grey out when BFS is active
+		ImGui::BeginDisabled();
 
 	ImGui::Text("Heuristic:");
 	ImGui::SameLine();
@@ -201,7 +201,7 @@ void ALevel_PathfindingAStar::UpdateImGui()
 		default:
 		case 4: HeuristicFunction = HeuristicFunctions::Chebyshev;   break;
 		}
-		CalculatePath(); // recalculate when heuristic changes
+		CalculatePath();
 	}
 
 	if (SelectedAlgorithm == 0)
@@ -212,7 +212,6 @@ void ALevel_PathfindingAStar::UpdateImGui()
 
 	ImGui::Spacing();
 
-	// --- Mud info ---
 	ImGui::TextDisabled("Mud cost x2 - visible with A*, ignored by BFS");
 
 	ImGui::End();

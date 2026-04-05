@@ -50,13 +50,11 @@ void GameAI::NavGraph::CreateNavigationGraph()
 {
     const std::vector<TriPolygon::Edge>&     edges     = pNavPoly->GetEdges();
     const std::vector<TriPolygon::Triangle>& triangles = pNavPoly->GetTriangles();
-
-    // ── A. Loop over all lines (edges). Only shared edges are portals ──────
+	
     for (int edgeIdx = 0; edgeIdx < static_cast<int>(edges.size()); ++edgeIdx)
     {
         const TriPolygon::Edge& edge = edges[edgeIdx];
 
-        // Count how many triangles contain this edge
         int triCount = 0;
         for (const TriPolygon::Triangle& tri : triangles)
         {
@@ -64,7 +62,6 @@ void GameAI::NavGraph::CreateNavigationGraph()
                 ++triCount;
         }
 
-        // Only shared edges (portals between 2 triangles) get a node
         if (triCount >= 2)
         {
             FVector p1 = edge.GetP1(*pNavPoly);
@@ -75,7 +72,6 @@ void GameAI::NavGraph::CreateNavigationGraph()
         }
     }
 
-    // ── B. For each triangle, find its nodes and connect them ─────────────
     for (const TriPolygon::Triangle& tri : triangles)
     {
         std::array<TriPolygon::Edge, 3> triEdges = tri.GetEdges();
@@ -89,12 +85,11 @@ void GameAI::NavGraph::CreateNavigationGraph()
                 nodeIds.push_back(nodeId);
         }
 
-        // 2 valid nodes → 1 connection
         if (nodeIds.size() == 2)
         {
             AddConnection(nodeIds[0], nodeIds[1]);
         }
-        // 3 valid nodes → 3 connections (fully connect the triple)
+    	
         else if (nodeIds.size() == 3)
         {
             AddConnection(nodeIds[0], nodeIds[1]);
@@ -103,7 +98,6 @@ void GameAI::NavGraph::CreateNavigationGraph()
         }
     }
 
-    // ── C. Set connection costs to actual Euclidean distance ──────────────
     SetConnectionCostsToDistances();
 }
 

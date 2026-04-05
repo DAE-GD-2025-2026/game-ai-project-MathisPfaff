@@ -33,11 +33,9 @@ namespace GameAI
 
 	inline Eulerianity EulerianPath::IsEulerian() const
 	{
-		// If the graph is not connected, there can be no Eulerian Trail
 		if (!IsConnected())
 			return Eulerianity::notEulerian;
 
-		// Count nodes with odd degree
 		std::vector<Node*> Nodes = m_pGraph->GetActiveNodes();
 		int oddDegreeCount = 0;
 		for (Node* node : Nodes)
@@ -47,41 +45,33 @@ namespace GameAI
 				++oddDegreeCount;
 		}
 
-		// More than 2 odd-degree nodes -> not Eulerian
 		if (oddDegreeCount > 2)
 			return Eulerianity::notEulerian;
 
-		// Exactly 2 odd-degree nodes -> Semi-Eulerian (has Euler trail, not circuit)
 		if (oddDegreeCount == 2)
 			return Eulerianity::semiEulerian;
 
-		// No odd-degree nodes -> fully Eulerian (has Euler circuit)
 		return Eulerianity::eulerian;
 	}
 
 	inline std::vector<Node*> EulerianPath::FindPath(Eulerianity& eulerianity) const
 	{
-		// Get a copy of the graph because this algorithm involves removing edges
 		Graph graphCopy = m_pGraph->Clone();
     	std::vector<Node*> Path = {};
     	std::vector<Node*> Nodes = graphCopy.GetActiveNodes();
     	int currentNodeId{ Graphs::InvalidNodeId };
 		
-    	// Check if there can be an Euler path
     	eulerianity = IsEulerian();
 		
-    	// If this graph is not eulerian, return the empty path
     	if (eulerianity == Eulerianity::notEulerian)
     	    return Path;
 		
-    	// Choose a starting node
     	if (eulerianity == Eulerianity::eulerian)
     	{
-    	    // All even degrees -> any node works
     	    if (!Nodes.empty())
     	        currentNodeId = Nodes[0]->GetId();
     	}
-    	else // semiEulerian -> must start at a node with odd degree
+    	else
     	{
     	    for (Node* node : Nodes)
     	    {
@@ -97,40 +87,31 @@ namespace GameAI
     	if (currentNodeId == Graphs::InvalidNodeId)
     	    return Path;
 		
-    	// Start algorithm loop (Hierholzer's algorithm)
     	std::stack<int> nodeStack;
 		
-    	// Step 3: repeat until current node has no connections AND stack is empty
     	while (!graphCopy.FindConnectionsFrom(currentNodeId).empty() || !nodeStack.empty())
     	{
     	    auto connections = graphCopy.FindConnectionsFrom(currentNodeId);
 		
-    	    if (!connections.empty()) // Step 4: current node HAS neighbors
+    	    if (!connections.empty())
     	    {
-    	        // I. Add current node to the stack
     	        nodeStack.push(currentNodeId);
 		
-    	        // II. Take any neighbor
     	        int neighborId = connections[0]->GetToId();
 		
-    	        // IV. Remove the edge between current node and that neighbor (from the COPY!)
     	        graphCopy.RemoveConnection(currentNodeId, neighborId);
 		
-    	        // III. Set neighbor as the current node
     	        currentNodeId = neighborId;
     	    }
-    	    else // current node has NO neighbors
+    	    else
     	    {
-    	        // Add current node to path - get from ORIGINAL graph!
     	        Path.push_back(m_pGraph->GetNode(currentNodeId).get());
 		
-    	        // Move back to top of stack
     	        currentNodeId = nodeStack.top();
     	        nodeStack.pop();
     	    }
     	}
 		
-    	// Step 5: Add the last current node to the path (from original graph!)
     	Path.push_back(m_pGraph->GetNode(currentNodeId).get());
 		
     	std::reverse(Path.begin(), Path.end());

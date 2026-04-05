@@ -124,7 +124,7 @@ void ALevel_GraphTheory::Tick(float DeltaTime)
         // If a valid Euler path/circuit exists → reset agent to follow it
         if (eulerianity != Eulerianity::notEulerian && !trail.empty())
         {
-            UpdateAgentPath(trail);  // ← this resets + teleports the agent
+            UpdateAgentPath(trail);
         }
     }
 }
@@ -139,7 +139,7 @@ void ALevel_GraphTheory::UpdateAgentPath(std::vector<Node*> const& Trail)
 
     if (!path.empty() && Agent)
     {
-        Agent->SetMaxLinearSpeed(600.f); // restore original speed here!
+        Agent->SetMaxLinearSpeed(600.f);
         Agent->SetPosition(path[0]);
     }
 }

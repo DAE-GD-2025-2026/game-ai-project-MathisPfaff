@@ -11,13 +11,12 @@ namespace GameAI
 	public:
 		AStar(Graph* const pGraph, HeuristicFunctions::Heuristic hFunction);
 
-		// stores the optimal connection to a node and its total costs related to the start and end node of the path
 		struct NodeRecord final
 		{
 			Node* pNode = nullptr;
 			Connection* pConnection = nullptr;
-			float costSoFar = 0.f; // accumulated g-costs of all the connections leading up to this one
-			float estimatedTotalCost = 0.f; // f-cost (= costSoFar + h-cost)
+			float costSoFar = 0.f;
+			float estimatedTotalCost = 0.f;
 
 			bool operator==(const NodeRecord& other) const
 			{

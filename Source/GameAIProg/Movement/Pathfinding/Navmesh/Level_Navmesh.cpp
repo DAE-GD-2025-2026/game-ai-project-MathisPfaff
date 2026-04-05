@@ -77,7 +77,7 @@ void ALevel_Navmesh::Tick(float DeltaTime)
 	{
 		for (const FVector& Vertex : NavigationGraph->GetNavPolygon()->GetVertices())
 		{
-			DrawDebugPoint(GetWorld(), Vertex, 10.0f, FColor::Cyan);
+			DrawDebugPoint(GetWorld(), FVector(Vertex.X, Vertex.Y, Vertex.Z + 10.0f), 50.0f, FColor::Cyan);
 		}
 	}
 	

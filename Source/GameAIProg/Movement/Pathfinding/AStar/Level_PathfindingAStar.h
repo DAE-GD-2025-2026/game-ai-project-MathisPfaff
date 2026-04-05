@@ -53,7 +53,7 @@ private:
 	
 	float DefaultAgentSpeed{600.f};
 
-	// Algorithm selection: 0 = BFS, 1 = A*
+	
 	int SelectedAlgorithm = 0;
 
 	int SelectedHeuristic = 4;
