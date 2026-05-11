@@ -17,23 +17,18 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
-	virtual void BindLevelInputActions() override; // handle mouse click
 
 private:
-	// ── Thief (mouse-controlled) ──
 	UPROPERTY()
 	ASteeringAgent* Thief{nullptr};
-	std::unique_ptr<Seek> ThiefBehavior; // Seek toward mouse click
+	std::unique_ptr<Seek> ThiefBehavior;
 
-	// ── Guard (FSM-controlled) ──
 	UPROPERTY()
 	ASteeringAgent* Guard{nullptr};
 
-	// Patrol waypoints — set these in the editor Details panel
 	UPROPERTY(EditAnywhere, Category="AI|Patrol")
 	TArray<FVector2D> PatrolPoints;
 
-	// How long guard searches before giving up
 	UPROPERTY(EditAnywhere, Category="AI|Search")
 	float SearchDuration{5.f};
 };

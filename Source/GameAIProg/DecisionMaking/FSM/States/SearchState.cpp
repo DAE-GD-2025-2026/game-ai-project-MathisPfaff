@@ -19,11 +19,9 @@ namespace GameAI::FSM
         UBlackboardComponent* BB = Controller->GetBlackboardComponent();
         if (!BB) return;
 
-        // Reset state
         BB->SetValueAsFloat("SearchTime", 0.f);
         bArrivedAtLastKnown = false;
 
-        // Phase 1: move to where the player was last seen
         FVector LastKnown = BB->GetValueAsVector("LastKnownLocation");
         ArriveBehavior->SetTarget(FTargetData{FVector2D(LastKnown)});
         Agent->SetSteeringBehavior(ArriveBehavior.get());
@@ -43,22 +41,18 @@ namespace GameAI::FSM
         UBlackboardComponent* BB = Controller->GetBlackboardComponent();
         if (!BB) return;
 
-        // Tick the search timer
         BB->SetValueAsFloat("SearchTime", BB->GetValueAsFloat("SearchTime") + DeltaTime);
 
         if (!bArrivedAtLastKnown)
         {
-            // Check if we've reached the last known location
             FVector LastKnown = BB->GetValueAsVector("LastKnownLocation");
             float Dist = FVector2D::Distance(Agent->GetPosition(), FVector2D(LastKnown));
 
             if (Dist < ArrivalRadius)
             {
-                // Phase 2: arrived — now wander to search the area
                 bArrivedAtLastKnown = true;
                 Agent->SetSteeringBehavior(WanderBehavior.get());
             }
         }
-        // If already wandering, Wander handles itself each tick via SteeringAgent
     }
 }

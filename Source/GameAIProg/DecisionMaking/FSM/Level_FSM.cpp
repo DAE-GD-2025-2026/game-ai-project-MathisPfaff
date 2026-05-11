@@ -15,7 +15,7 @@ ALevel_FSM::ALevel_FSM()
 
 void ALevel_FSM::BeginPlay()
 {
-    Super::BeginPlay(); // sets up input, mouse, trimworld
+    Super::BeginPlay();
     
     if (PatrolPoints.IsEmpty())
     {
@@ -34,9 +34,8 @@ void ALevel_FSM::BeginPlay()
         FVector{200, 0, 90}, FRotator::ZeroRotator);
     Thief->SetDebugRenderingEnabled(true);
 
-    // Create Seek behavior — target is updated on each mouse click
     ThiefBehavior = std::make_unique<Seek>();
-    ThiefBehavior->SetTarget(MouseTarget); // start at origin until first click
+    ThiefBehavior->SetTarget(MouseTarget);
     Thief->SetSteeringBehavior(ThiefBehavior.get());
 
     // ────────────────────────────────────────────────
@@ -50,22 +49,18 @@ void ALevel_FSM::BeginPlay()
     {
         if (UFSMComponent* FSM = Cast<UFSMComponent>(AIController->GetBrainComponent()))
         {
-            // ── 1. Create states ──
             auto PatrolPtr = std::make_unique<GameAI::FSM::PatrolState>(Guard, AIController, PatrolPoints);
             auto ChasePtr  = std::make_unique<GameAI::FSM::ChaseState>(Guard, AIController);
             auto SearchPtr = std::make_unique<GameAI::FSM::SearchState>(Guard, AIController);
 
-            // Grab raw pointers BEFORE moving ownership
             GameAI::FSM::State* Patrol = PatrolPtr.get();
             GameAI::FSM::State* Chase  = ChasePtr.get();
             GameAI::FSM::State* Search = SearchPtr.get();
 
-            // ── 2. Hand ownership to FSM (Patrol first = starting state) ──
             FSM->AddState(std::move(PatrolPtr));
             FSM->AddState(std::move(ChasePtr));
             FSM->AddState(std::move(SearchPtr));
 
-            // ── 3. Transitions ──
             // Patrol → Chase: thief spotted
             FSM->AddTransition(Patrol, Chase, [AIController]()
             {
@@ -94,7 +89,6 @@ void ALevel_FSM::BeginPlay()
                 return BB && BB->GetValueAsFloat("SearchTime") >= SearchDuration;
             });
 
-            // ── 4. Start FSM ──
             AIController->RunFiniteStateMachine();
         }
     }
@@ -102,9 +96,8 @@ void ALevel_FSM::BeginPlay()
 
 void ALevel_FSM::Tick(float DeltaTime)
 {
-    Super::Tick(DeltaTime); // updates MouseTarget / LatestMouseWorldPos
+    Super::Tick(DeltaTime);
 
-    // Update thief target every tick — same pattern as Level_CombinedSteering
     if (ThiefBehavior)
     {
         ThiefBehavior->SetTarget(MouseTarget);

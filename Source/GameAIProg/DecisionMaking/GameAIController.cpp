@@ -17,7 +17,6 @@ void AGameAIController::BeginPlay()
     Super::BeginPlay();
     InitFiniteStateMachine();
 
-    // Start the periodic perception check — NOT every tick
     GetWorldTimerManager().SetTimer(PerceptionTimerHandle, this,
         &AGameAIController::UpdatePerception, PerceptionInterval, true);
 }
@@ -44,8 +43,6 @@ void AGameAIController::UpdatePerception()
     APawn* GuardPawn = GetPawn();
     if (!BB || !GuardPawn) return;
 
-    // Find the thief — it's the first OTHER SteeringAgent in the world
-    // (not the guard itself)
     TArray<AActor*> FoundAgents;
     UGameplayStatics::GetAllActorsOfClass(GetWorld(), ASteeringAgent::StaticClass(), FoundAgents);
 

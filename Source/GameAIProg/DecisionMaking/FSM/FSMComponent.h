@@ -41,10 +41,8 @@ class GAMEAIPROG_API UFSMComponent : public UBrainComponent
 	GENERATED_BODY()
 
 public:
-	// Sets default values for this component's properties
 	UFSMComponent();
 
-	// Called every frame
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType,
 	                           FActorComponentTickFunction* ThisTickFunction) override;
 	
@@ -56,8 +54,6 @@ public:
 	void AddState(std::unique_ptr<GameAI::FSM::State>&& NewState);
 	void AddTransition(GameAI::FSM::State* From, GameAI::FSM::State* To, std::function<bool()> EvalFunc) const;
 		
-protected:
-	// Called when the game starts
 	virtual void BeginPlay() override;
 
 private:

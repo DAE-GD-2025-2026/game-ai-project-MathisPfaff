@@ -1,5 +1,4 @@
 #include "PatrolState.h"
-#include "DecisionMaking/GameAIController.h"
 #include "Movement/SteeringBehaviors/SteeringAgent.h"
 #include "Movement/SteeringBehaviors/Steering/SteeringBehaviors.h"
 
@@ -9,7 +8,6 @@ namespace GameAI::FSM
 							 TArray<FVector2D> InPatrolPoints)
 		: Agent(InAgent), Controller(InController), PatrolPoints(InPatrolPoints)
 	{
-		// Create our Arrive behavior once — reused for the whole patrol
 		ArriveBehavior = std::make_unique<Arrive>();
 	}
 
@@ -17,14 +15,12 @@ namespace GameAI::FSM
 	{
 		if (!Agent || PatrolPoints.IsEmpty()) return;
 
-		// Start patrolling from wherever we left off (PatrolIndex persists between visits)
 		Agent->SetSteeringBehavior(ArriveBehavior.get());
 		ArriveBehavior->SetTarget(FTargetData{PatrolPoints[PatrolIndex]});
 	}
 
 	void PatrolState::OnExit()
 	{
-		// Stop movement by clearing the behavior
 		Agent->SetSteeringBehavior(nullptr);
 	}
 
@@ -32,11 +28,9 @@ namespace GameAI::FSM
 	{
 		if (!Agent || PatrolPoints.IsEmpty()) return;
 
-		// Check if we're close enough to the current waypoint
 		FVector2D ToTarget = PatrolPoints[PatrolIndex] - Agent->GetPosition();
-		if (ToTarget.Length() < 100.f) // within arrival radius
+		if (ToTarget.Length() < 100.f)
 		{
-			// Advance to next waypoint, wrap around
 			PatrolIndex = (PatrolIndex + 1) % PatrolPoints.Num();
 			ArriveBehavior->SetTarget(FTargetData{PatrolPoints[PatrolIndex]});
 		}
