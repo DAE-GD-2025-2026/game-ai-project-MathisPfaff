@@ -1,7 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
-
 #include "CoreMinimal.h"
 #include "AIController.h"
 #include "GameAIController.generated.h"
@@ -13,17 +10,28 @@ class GAMEAIPROG_API AGameAIController : public AAIController
 
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="AI|FSM")
-	TObjectPtr<UBlackboardData> FSMBlackboardAsset; 
-	
-	// Sets default values for this actor's properties
+	TObjectPtr<UBlackboardData> FSMBlackboardAsset;
+
+	// How far the guard can see
+	UPROPERTY(EditAnywhere, Category="AI|Perception")
+	float DetectionRadius{800.f};
+
+	// How often (seconds) the visibility check runs — not every tick!
+	UPROPERTY(EditAnywhere, Category="AI|Perception")
+	float PerceptionInterval{0.3f};
+
 	AGameAIController();
-	// Called every frame
 	virtual void Tick(float DeltaTime) override;
-	
+
 	void RunFiniteStateMachine();
-	
+
 protected:
-	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 	void InitFiniteStateMachine();
+
+private:
+	// Called on a timer — checks radius + line of sight, writes to blackboard
+	void UpdatePerception();
+
+	FTimerHandle PerceptionTimerHandle;
 };

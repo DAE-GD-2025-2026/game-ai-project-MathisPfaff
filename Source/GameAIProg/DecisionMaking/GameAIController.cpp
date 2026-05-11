@@ -1,54 +1,93 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
-
 #include "GameAIController.h"
-
 #include "BehaviorTree/BlackboardComponent.h"
 #include "FSM/FSMComponent.h"
+#include "GameFramework/Character.h"
+#include "DrawDebugHelpers.h"
+#include "Kismet/GameplayStatics.h" 
+#include "Movement/SteeringBehaviors/SteeringAgent.h"
 
-
-// Sets default values
 AGameAIController::AGameAIController()
 {
-	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
-	BrainComponent = CreateDefaultSubobject<UFSMComponent>(TEXT("FSMComponent"));;
+    PrimaryActorTick.bCanEverTick = true;
+    BrainComponent = CreateDefaultSubobject<UFSMComponent>(TEXT("FSMComponent"));
 }
 
-// Called when the game starts or when spawned
 void AGameAIController::BeginPlay()
 {
-	Super::BeginPlay();
-	
-	// Create Blackboard if need be
-	InitFiniteStateMachine();
+    Super::BeginPlay();
+    InitFiniteStateMachine();
+
+    // Start the periodic perception check — NOT every tick
+    GetWorldTimerManager().SetTimer(PerceptionTimerHandle, this,
+        &AGameAIController::UpdatePerception, PerceptionInterval, true);
 }
 
-// Called every frame
 void AGameAIController::Tick(float DeltaTime)
 {
-	Super::Tick(DeltaTime);
+    Super::Tick(DeltaTime);
 }
 
 void AGameAIController::InitFiniteStateMachine()
 {
-	UFSMComponent* FSMComp = FindComponentByClass<UFSMComponent>();
-	if (ensure(FSMComp) && FSMBlackboardAsset)
-	{
-		UBlackboardComponent* BlackboardComp = Blackboard;
-		UseBlackboard(FSMBlackboardAsset, BlackboardComp);
-		Blackboard = BlackboardComp;
-	}
+    UFSMComponent* FSMComp = FindComponentByClass<UFSMComponent>();
+    if (ensure(FSMComp) && FSMBlackboardAsset)
+    {
+        UBlackboardComponent* BlackboardComp = Blackboard;
+        UseBlackboard(FSMBlackboardAsset, BlackboardComp);
+        Blackboard = BlackboardComp;
+    }
+}
+
+void AGameAIController::UpdatePerception()
+{
+    UBlackboardComponent* BB = GetBlackboardComponent();
+    APawn* GuardPawn = GetPawn();
+    if (!BB || !GuardPawn) return;
+
+    // Find the thief — it's the first OTHER SteeringAgent in the world
+    // (not the guard itself)
+    TArray<AActor*> FoundAgents;
+    UGameplayStatics::GetAllActorsOfClass(GetWorld(), ASteeringAgent::StaticClass(), FoundAgents);
+
+    ASteeringAgent* Thief = nullptr;
+    for (AActor* Actor : FoundAgents)
+    {
+        if (Actor != GuardPawn)
+        {
+            Thief = Cast<ASteeringAgent>(Actor);
+            break;
+        }
+    }
+    if (!Thief) return;
+
+    bool bVisible = false;
+    float Dist = FVector::Dist(GuardPawn->GetActorLocation(), Thief->GetActorLocation());
+
+    if (Dist <= DetectionRadius)
+    {
+        FHitResult HitResult;
+        FCollisionQueryParams Params;
+        Params.AddIgnoredActor(GuardPawn);
+
+        bool bHit = GetWorld()->LineTraceSingleByChannel(HitResult,
+            GuardPawn->GetActorLocation(), Thief->GetActorLocation(),
+            ECC_Visibility, Params);
+
+        if (!bHit || HitResult.GetActor() == Thief)
+        {
+            bVisible = true;
+            BB->SetValueAsObject("TargetActor", Thief);
+            BB->SetValueAsVector("LastKnownLocation", Thief->GetActorLocation());
+        }
+    }
+
+    BB->SetValueAsBool("IsTargetVisible",    bVisible);
+    BB->SetValueAsBool("IsTargetNotVisible", !bVisible);
 }
 
 void AGameAIController::RunFiniteStateMachine()
 {
-	UFSMComponent* FSMComp = FindComponentByClass<UFSMComponent>();
-	if (ensure(FSMComp))
-	{
-		FSMComp->StartLogic();
-	}
+    UFSMComponent* FSMComp = FindComponentByClass<UFSMComponent>();
+    if (ensure(FSMComp))
+        FSMComp->StartLogic();
 }
-
-
-

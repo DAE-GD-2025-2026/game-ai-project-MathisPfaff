@@ -1,5 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include <functional>
@@ -7,13 +5,34 @@
 
 #include "CoreMinimal.h"
 #include "BrainComponent.h"
+#include "States/State.h"
 #include "FSMComponent.generated.h"
 
 namespace GameAI::FSM
 {
-	class State;
-	class Transition;
-	class FSM; // contains FSM logic
+	struct Transition
+	{
+		State* From;
+		State* To;
+		std::function<bool()> Condition;
+	};
+
+	class FSM
+	{
+	public:
+		void AddState(std::unique_ptr<State> NewState);
+		void AddTransition(State* From, State* To, std::function<bool()> Condition);
+		void Start();
+		void Update(float DeltaTime);
+		State* GetCurrentState() const { return CurrentState; }
+
+	private:
+		std::vector<std::unique_ptr<State>> States;
+		std::vector<Transition> Transitions;
+		State* CurrentState{nullptr};
+
+		void SwitchTo(State* NewState);
+	};
 }
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
@@ -42,6 +61,6 @@ protected:
 	virtual void BeginPlay() override;
 
 private:
-	//std::unique_ptr<GameAI::FSM::FSM> FSMInstance;
+	std::unique_ptr<GameAI::FSM::FSM> FSMInstance;
 	bool bIsRunning{false};
 };
